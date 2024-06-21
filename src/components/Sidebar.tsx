@@ -7,17 +7,17 @@ const Sidebar = () => {
         <Link href="/" className="text-lg hover:underline">
           Home
         </Link>
-        <Link href="/about" className="text-lg hover:underline">
-          About
+        <Link href="/inbox" className="text-lg hover:underline">
+          Messagerie
         </Link>
-        <Link href="/blog" className="text-lg hover:underline">
-          Blog
+        <Link href="/patients" className="text-lg hover:underline">
+          Patients
         </Link>
-        <Link href="/docs" className="text-lg hover:underline">
-          Docs
+        <Link href="/calendar" className="text-lg hover:underline">
+          Calendrier
         </Link>
-        <Link href="/pricing" className="text-lg hover:underline">
-          Pricing
+        <Link href="/billing" className="text-lg hover:underline">
+          Facturation
         </Link>
       </nav>
     </div>
