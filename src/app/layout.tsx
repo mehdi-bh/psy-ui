@@ -1,7 +1,7 @@
-import "@/styles/globals.css";
+import "@/src/styles/globals.css";
 import { Providers } from "./providers";
-import Sidebar from "@/components/Sidebar";
-import { fontSans, fontMono } from "@/config/fonts";
+import Sidebar from "@/src/components/Sidebar";
+import { fontSans, fontMono } from "@/src/config/fonts";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
