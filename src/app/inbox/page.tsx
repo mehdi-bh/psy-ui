@@ -36,13 +36,12 @@ export default function Inbox() {
   const [messages, setMessages] = useState<DiscussionMessage[]>([]);
   const [newMessage, setNewMessage] = useState<string>('');
   const [chatList, setChatList] = useState<Patient[]>([]);
+  const [ws, setWs] = useState<WebSocket | null>(null);
 
   useEffect(() => {
-    // fetch('https://6n97whk5nb.execute-api.eu-west-3.amazonaws.com/dev/patients/psychologist/456', {
-    fetch('http://localhost:3000/dev/patients/psychologist/456')
+    fetch(' https://6n97whk5nb.execute-api.eu-west-3.amazonaws.com/dev/patients/psychologist/456')
       .then(response => response.json())
       .then(data => {
-        console.log(data)
         setChatList(data);
       })
       .catch(error => console.error('Error fetching patient list:', error));
@@ -50,8 +49,7 @@ export default function Inbox() {
 
   useEffect(() => {
     if (selectedChatId) {
-      // fetch('https://6n97whk5nb.execute-api.eu-west-3.amazonaws.com/dev/discussion_messages/456/${selectedChatId}`', {
-      fetch(`http://localhost:3000/dev/discussion_messages/456/${selectedChatId}`)
+      fetch(`https://6n97whk5nb.execute-api.eu-west-3.amazonaws.com/dev/discussion_messages/456/${selectedChatId}`)
         .then(response => response.json())
         .then(data => {
           setMessages(data);
@@ -59,6 +57,24 @@ export default function Inbox() {
         .catch(error => console.error('Error fetching discussion messages:', error));
     }
   }, [selectedChatId]);
+
+  useEffect(() => {
+    const ws = new WebSocket('wss://yme9o8ixtg.execute-api.eu-west-3.amazonaws.com/dev');
+    ws.onopen = () => console.log('Connected to WebSocket');
+    ws.onmessage = (event) => {
+      const message = JSON.parse(event.data);
+      setMessages(prevMessages => [...prevMessages, message]);
+      console.log('Received message:', message)
+      console.log('Received event:', event)
+    };
+    ws.onclose = () => console.log('Disconnected from WebSocket');
+    setWs(ws);
+
+    return () => {
+      ws.close();
+    };
+  }, []);
+
 
   const handleChatSelect = (chatId: string) => {
     setSelectedChatId(chatId);
@@ -75,21 +91,24 @@ export default function Inbox() {
         Sender: 'Psychologist',
         Seen: false,
       };
-      // fetch('https://6n97whk5nb.execute-api.eu-west-3.amazonaws.com/dev/discussion_message', {
-      fetch('http://localhost:3000/dev/discussion_message', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(newMsg),
-      })
-        .then(response => response.json())
-        .then(data => {
-          console.log(messages)
-          setMessages([...messages, data]);
-          setNewMessage('');
-        })
-        .catch(error => console.error('Error sending message:', error));
+
+      // @ts-ignore
+      ws.send(JSON.stringify({ action: 'sendMessage', data: newMsg }));
+      setNewMessage('');
+
+      // fetch('http://localhost:3000/dev/discussion_message', {
+      //   method: 'POST',
+      //   headers: {
+      //     'Content-Type': 'application/json',
+      //   },
+      //   body: JSON.stringify(newMsg),
+      // })
+      //   .then(response => response.json())
+      //   .then(data => {
+      //     ws.send(JSON.stringify({ action: 'sendMessage', data: newMsg }));
+      //     setNewMessage('');
+      //   })
+      //   .catch(error => console.error('Error sending message:', error));
     }
   };
 
