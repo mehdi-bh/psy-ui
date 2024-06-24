@@ -1,80 +1,62 @@
 "use client";
-import { useState, useEffect } from 'react';
+
+import { useCallback, useEffect, useState } from "react";
 import { Button, Textarea, User } from "@nextui-org/react";
+import { getPatients } from "../../services/patientService";
+import { getMessages, sendMessage } from "../../services/discussionService";
+import { DiscussionMessage } from "../../models/DiscussionMessage";
+import { Patient } from "../../models/Patient";
+import config from "../../config/config";
 
-interface DiscussionMessage {
-  MessageId: string;
-  PsychologistId: string;
-  PatientId: string;
-  Message: string;
-  Timestamp: string;
-  Sender: string;
-  Seen: boolean;
-}
-
-interface Patient {
-  PatientId: string;
-  FirstName: string;
-  LastName: string;
-  DateOfBirth: string;
-  Sex: string;
-  Email: string;
-  PhoneNumber: string;
-  Address: {
-    Street: string;
-    City: string;
-    State: string;
-    ZipCode: string;
-  };
-  Description?: string;
-  Photo?: string;
-  PsychologistId: string;
-}
-
-export default function Inbox() {
+const Inbox: React.FC = () => {
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const [messages, setMessages] = useState<DiscussionMessage[]>([]);
   const [newMessage, setNewMessage] = useState<string>('');
   const [chatList, setChatList] = useState<Patient[]>([]);
   const [ws, setWs] = useState<WebSocket | null>(null);
 
-  useEffect(() => {
-    fetch(' https://6n97whk5nb.execute-api.eu-west-3.amazonaws.com/dev/patients/psychologist/456')
-      .then(response => response.json())
-      .then(data => {
-        setChatList(data);
-      })
+  const fetchPatients = useCallback(() => {
+    console.log(config.WS_URL)
+    getPatients('456')
+      .then(data => setChatList(data))
       .catch(error => console.error('Error fetching patient list:', error));
   }, []);
 
-  useEffect(() => {
-    if (selectedChatId) {
-      fetch(`https://6n97whk5nb.execute-api.eu-west-3.amazonaws.com/dev/discussion_messages/456/${selectedChatId}`)
-        .then(response => response.json())
-        .then(data => {
-          setMessages(data);
-        })
-        .catch(error => console.error('Error fetching discussion messages:', error));
-    }
-  }, [selectedChatId]);
-
-  useEffect(() => {
-    const ws = new WebSocket('wss://yme9o8ixtg.execute-api.eu-west-3.amazonaws.com/dev');
-    ws.onopen = () => console.log('Connected to WebSocket');
-    ws.onmessage = (event) => {
-      const message = JSON.parse(event.data);
-      setMessages(prevMessages => [...prevMessages, message]);
-      console.log('Received message:', message)
-      console.log('Received event:', event)
-    };
-    ws.onclose = () => console.log('Disconnected from WebSocket');
-    setWs(ws);
-
-    return () => {
-      ws.close();
-    };
+  const fetchMessages = useCallback((chatId: string) => {
+    getMessages('456', chatId)
+      .then(data => setMessages(data))
+      .catch(error => console.error('Error fetching discussion messages:', error));
   }, []);
 
+  const initializeWebSocket = useCallback(() => {
+    const websocket = new WebSocket(config.WS_URL as string);
+
+    websocket.onopen = () => console.log('Connected to WebSocket');
+    websocket.onmessage = (event) => {
+      const message = JSON.parse(event.data);
+      setMessages(prevMessages => [...prevMessages, message]);
+      console.log('Received message:', message);
+    };
+    websocket.onclose = () => console.log('Disconnected from WebSocket');
+
+    setWs(websocket);
+
+    return () => websocket.close();
+  }, []);
+
+  useEffect(() => {
+    fetchPatients();
+  }, [fetchPatients]);
+
+  useEffect(() => {
+    if (selectedChatId) {
+      fetchMessages(selectedChatId);
+    }
+  }, [selectedChatId, fetchMessages]);
+
+  useEffect(() => {
+    return initializeWebSocket();
+  }, [initializeWebSocket]);
 
   const handleChatSelect = (chatId: string) => {
     setSelectedChatId(chatId);
@@ -92,23 +74,13 @@ export default function Inbox() {
         Seen: false,
       };
 
-      // @ts-ignore
-      ws.send(JSON.stringify({ action: 'sendMessage', data: newMsg }));
-      setNewMessage('');
+      if (ws) {
+        ws.send(JSON.stringify({ action: 'sendMessage', data: newMsg }));
+        setNewMessage('');
 
-      // fetch('http://localhost:3000/dev/discussion_message', {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //   },
-      //   body: JSON.stringify(newMsg),
-      // })
-      //   .then(response => response.json())
-      //   .then(data => {
-      //     ws.send(JSON.stringify({ action: 'sendMessage', data: newMsg }));
-      //     setNewMessage('');
-      //   })
-      //   .catch(error => console.error('Error sending message:', error));
+        sendMessage(newMsg)
+          .catch(error => console.error('Error sending message:', error));
+      }
     }
   };
 
@@ -141,7 +113,7 @@ export default function Inbox() {
                 type="text"
                 className="flex-1"
                 value={newMessage}
-                variant={"bordered"}
+                variant="bordered"
                 onChange={e => setNewMessage(e.target.value)}
               />
               <Button
@@ -161,4 +133,6 @@ export default function Inbox() {
       </div>
     </div>
   );
-}
+};
+
+export default Inbox;
