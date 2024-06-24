@@ -77,9 +77,6 @@ const Inbox: React.FC = () => {
       if (ws) {
         ws.send(JSON.stringify({ action: 'sendMessage', data: newMsg }));
         setNewMessage('');
-
-        sendMessage(newMsg)
-          .catch(error => console.error('Error sending message:', error));
       }
     }
   };
