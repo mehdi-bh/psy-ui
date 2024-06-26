@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useState, useRef } from "react";
 import { Button, Textarea, User } from "@nextui-org/react";
+
 import { getPatients } from "../../services/patientService";
-import { getMessages, sendMessage } from "../../services/discussionService";
+import { getMessages } from "../../services/discussionService";
 import { DiscussionMessage } from "../../models/DiscussionMessage";
 import { Patient } from "../../models/Patient";
 import config from "../../config/config";
@@ -11,43 +12,55 @@ import config from "../../config/config";
 const Inbox: React.FC = () => {
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const [messages, setMessages] = useState<DiscussionMessage[]>([]);
-  const [newMessage, setNewMessage] = useState<string>('');
+  const [newMessage, setNewMessage] = useState<string>("");
   const [chatList, setChatList] = useState<Patient[]>([]);
-  const ws = useRef<WebSocket | null>(null);  // Using useRef to persist the WebSocket across renders
+  const ws = useRef<WebSocket | null>(null);
 
-  const userId = '456';  // Replace with actual user ID
-  const userType = 'PSYCHOLOGIST';  // Replace with actual user type ('PSYCHOLOGIST' or 'PATIENT')
+  const userId = "456";
+  const userType = "PSYCHOLOGIST";
 
-  const fetchPatients = useCallback(() => {
-    console.log(config.WS_URL);
-    getPatients(userId)
-      .then(data => setChatList(data))
-      .catch(error => console.error('Error fetching patient list:', error));
+  const fetchPatients = useCallback(async () => {
+    try {
+      const data = await getPatients(userId);
+
+      setChatList(data);
+    } catch (error) {
+      console.error("Error fetching patient list:", error);
+    }
   }, [userId]);
 
-  const fetchMessages = useCallback((chatId: string) => {
-    getMessages(userId, chatId)
-      .then(data => setMessages(data))
-      .catch(error => console.error('Error fetching discussion messages:', error));
-  }, [userId]);
+  const fetchMessages = useCallback(
+    async (chatId: string) => {
+      try {
+        const data = await getMessages(userId, chatId);
+
+        setMessages(data);
+      } catch (error) {
+        console.error("Error fetching discussion messages:", error);
+      }
+    },
+    [userId],
+  );
 
   const initializeWebSocket = useCallback(() => {
     if (ws.current) {
-      ws.current.close();  // Ensure the existing WebSocket is closed before creating a new one
+      ws.current.close();
     }
 
-    const websocket = new WebSocket(`${config.WS_URL}?userId=${userId}&userType=${userType}`);
+    const websocket = new WebSocket(
+      `${config.WS_URL}?userId=${userId}&userType=${userType}`,
+    );
 
-    websocket.onopen = () => console.log('Connected to WebSocket');
+    websocket.onopen = () => console.log("Connected to WebSocket");
     websocket.onmessage = (event) => {
       const message = JSON.parse(event.data);
-      setMessages(prevMessages => [...prevMessages, message]);
-      console.log('Received message:', message);
+
+      setMessages((prevMessages) => [...prevMessages, message]);
     };
-    websocket.onclose = () => console.log('Disconnected from WebSocket');
+    websocket.onclose = () => console.log("Disconnected from WebSocket");
 
     websocket.onerror = (error) => {
-      console.error('WebSocket error:', error);
+      console.error("WebSocket error:", error);
     };
 
     ws.current = websocket;
@@ -85,13 +98,15 @@ const Inbox: React.FC = () => {
         PatientId: selectedChatId,
         Message: newMessage,
         Timestamp: new Date().toISOString(),
-        Sender: 'Psychologist',
+        Sender: "Psychologist",
         Seen: false,
       };
 
       if (ws.current) {
-        ws.current.send(JSON.stringify({ action: 'sendMessage', data: newMsg }));
-        setNewMessage('');
+        ws.current.send(
+          JSON.stringify({ action: "sendMessage", data: newMsg }),
+        );
+        setNewMessage("");
       }
     }
   };
@@ -101,8 +116,12 @@ const Inbox: React.FC = () => {
       <div className="w-1/4 border-r">
         <h2 className="text-xl font-bold p-4">Discussions</h2>
         <ul>
-          {chatList.map(chat => (
-            <li key={chat.PatientId} onClick={() => handleChatSelect(chat.PatientId)} className="cursor-pointer mr-4 p-2 hover:bg-gray-200 rounded">
+          {chatList.map((chat) => (
+            <li
+              key={chat.PatientId}
+              className="cursor-pointer mr-4 p-2 hover:bg-gray-200 rounded"
+              onClick={() => handleChatSelect(chat.PatientId)}
+            >
               <User name={`${chat.FirstName} ${chat.LastName}`} />
             </li>
           ))}
@@ -112,9 +131,14 @@ const Inbox: React.FC = () => {
         {selectedChatId ? (
           <>
             <div className="flex-1 p-4 overflow-y-auto">
-              {messages.map(msg => (
-                <div key={msg.MessageId} className={`p-2 my-2 ${msg.Sender === 'Psychologist' ? 'text-right' : 'text-left'}`}>
-                  <div className={`inline-block p-2 rounded ${msg.Sender === 'Psychologist' ? 'bg-blue-200' : 'bg-gray-200'}`}>
+              {messages.map((msg) => (
+                <div
+                  key={msg.MessageId}
+                  className={`p-2 my-2 ${msg.Sender === "Psychologist" ? "text-right" : "text-left"}`}
+                >
+                  <div
+                    className={`inline-block p-2 rounded ${msg.Sender === "Psychologist" ? "bg-blue-200" : "bg-gray-200"}`}
+                  >
                     {msg.Message}
                   </div>
                 </div>
@@ -122,15 +146,15 @@ const Inbox: React.FC = () => {
             </div>
             <div className="p-4 border-t flex">
               <Textarea
-                type="text"
                 className="flex-1"
+                type="text"
                 value={newMessage}
                 variant="bordered"
-                onChange={e => setNewMessage(e.target.value)}
+                onChange={(e) => setNewMessage(e.target.value)}
               />
               <Button
-                color="primary"
                 className="ml-2"
+                color="primary"
                 onClick={handleSendMessage}
               >
                 Send
@@ -139,7 +163,9 @@ const Inbox: React.FC = () => {
           </>
         ) : (
           <div className="flex-1 p-4 flex items-center justify-center">
-            <p className="text-gray-500">Select a discussion to start chatting</p>
+            <p className="text-gray-500">
+              Select a discussion to start chatting
+            </p>
           </div>
         )}
       </div>

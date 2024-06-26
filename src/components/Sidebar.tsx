@@ -4,19 +4,19 @@ const Sidebar = () => {
   return (
     <div className="w-64 h-full bg-gray-500 p-4">
       <nav className="flex flex-col gap-4">
-        <Link href="/" className="text-lg hover:underline">
+        <Link className="text-lg hover:underline" href="/">
           Home
         </Link>
-        <Link href="/inbox" className="text-lg hover:underline">
+        <Link className="text-lg hover:underline" href="/inbox">
           Messagerie
         </Link>
-        <Link href="/patients" className="text-lg hover:underline">
+        <Link className="text-lg hover:underline" href="/patients">
           Patients
         </Link>
-        <Link href="/calendar" className="text-lg hover:underline">
+        <Link className="text-lg hover:underline" href="/calendar">
           Calendrier
         </Link>
-        <Link href="/billing" className="text-lg hover:underline">
+        <Link className="text-lg hover:underline" href="/billing">
           Facturation
         </Link>
       </nav>
