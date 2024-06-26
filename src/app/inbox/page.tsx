@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { Button, Textarea, User } from "@nextui-org/react";
 import { getPatients } from "../../services/patientService";
 import { getMessages, sendMessage } from "../../services/discussionService";
@@ -13,23 +13,30 @@ const Inbox: React.FC = () => {
   const [messages, setMessages] = useState<DiscussionMessage[]>([]);
   const [newMessage, setNewMessage] = useState<string>('');
   const [chatList, setChatList] = useState<Patient[]>([]);
-  const [ws, setWs] = useState<WebSocket | null>(null);
+  const ws = useRef<WebSocket | null>(null);  // Using useRef to persist the WebSocket across renders
+
+  const userId = '456';  // Replace with actual user ID
+  const userType = 'PSYCHOLOGIST';  // Replace with actual user type ('PSYCHOLOGIST' or 'PATIENT')
 
   const fetchPatients = useCallback(() => {
-    console.log(config.WS_URL)
-    getPatients('456')
+    console.log(config.WS_URL);
+    getPatients(userId)
       .then(data => setChatList(data))
       .catch(error => console.error('Error fetching patient list:', error));
-  }, []);
+  }, [userId]);
 
   const fetchMessages = useCallback((chatId: string) => {
-    getMessages('456', chatId)
+    getMessages(userId, chatId)
       .then(data => setMessages(data))
       .catch(error => console.error('Error fetching discussion messages:', error));
-  }, []);
+  }, [userId]);
 
   const initializeWebSocket = useCallback(() => {
-    const websocket = new WebSocket(config.WS_URL as string);
+    if (ws.current) {
+      ws.current.close();  // Ensure the existing WebSocket is closed before creating a new one
+    }
+
+    const websocket = new WebSocket(`${config.WS_URL}?userId=${userId}&userType=${userType}`);
 
     websocket.onopen = () => console.log('Connected to WebSocket');
     websocket.onmessage = (event) => {
@@ -39,10 +46,18 @@ const Inbox: React.FC = () => {
     };
     websocket.onclose = () => console.log('Disconnected from WebSocket');
 
-    setWs(websocket);
+    websocket.onerror = (error) => {
+      console.error('WebSocket error:', error);
+    };
 
-    return () => websocket.close();
-  }, []);
+    ws.current = websocket;
+
+    return () => {
+      if (ws.current) {
+        ws.current.close();
+      }
+    };
+  }, [userId, userType]);
 
   useEffect(() => {
     fetchPatients();
@@ -66,7 +81,7 @@ const Inbox: React.FC = () => {
     if (newMessage.trim() && selectedChatId) {
       const newMsg: DiscussionMessage = {
         MessageId: Date.now().toString(),
-        PsychologistId: '456',
+        PsychologistId: userId,
         PatientId: selectedChatId,
         Message: newMessage,
         Timestamp: new Date().toISOString(),
@@ -74,8 +89,8 @@ const Inbox: React.FC = () => {
         Seen: false,
       };
 
-      if (ws) {
-        ws.send(JSON.stringify({ action: 'sendMessage', data: newMsg }));
+      if (ws.current) {
+        ws.current.send(JSON.stringify({ action: 'sendMessage', data: newMsg }));
         setNewMessage('');
       }
     }
