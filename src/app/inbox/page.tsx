@@ -8,13 +8,16 @@ import { getMessages } from "../../services/discussionService";
 import { DiscussionMessage } from "../../models/DiscussionMessage";
 import { Patient } from "../../models/Patient";
 import config from "../../config/config";
+import PatientList from "@/src/components/PatientList";
 
 const Inbox: React.FC = () => {
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const [messages, setMessages] = useState<DiscussionMessage[]>([]);
   const [newMessage, setNewMessage] = useState<string>("");
   const [chatList, setChatList] = useState<Patient[]>([]);
+  const [sendingMessage, setSendingMessage] = useState<boolean>(false);
   const ws = useRef<WebSocket | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   const userId = "456";
   const userType = "PSYCHOLOGIST";
@@ -55,8 +58,14 @@ const Inbox: React.FC = () => {
     websocket.onmessage = (event) => {
       const message = JSON.parse(event.data);
 
-      setMessages((prevMessages) => [...prevMessages, message]);
+      setMessages((prevMessages) =>
+        prevMessages.map((msg) =>
+          msg.MessageId === message.MessageId ? { ...msg, Sending: false } : msg
+        )
+      );
+      setSendingMessage(false);
     };
+
     websocket.onclose = () => console.log("Disconnected from WebSocket");
 
     websocket.onerror = (error) => {
@@ -100,32 +109,43 @@ const Inbox: React.FC = () => {
         Timestamp: new Date().toISOString(),
         Sender: "Psychologist",
         Seen: false,
+        Sending: true,
       };
 
+      // Add the new message to the state immediately
+      setMessages((prevMessages) => [...prevMessages, newMsg]);
+      setNewMessage("");
+
       if (ws.current) {
-        ws.current.send(
-          JSON.stringify({ action: "sendMessage", data: newMsg }),
-        );
-        setNewMessage("");
+        setTimeout(() => {
+          // @ts-ignore
+          ws.current.send(
+            JSON.stringify({ action: "sendMessage", data: newMsg }),
+          );
+        }, 0); // 2 seconds delay
       }
     }
   };
+
+
+  const handleKeyPress = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      handleSendMessage();
+    }
+  };
+
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages]);
 
   return (
     <div className="flex h-full">
       <div className="w-1/4 border-r">
         <h2 className="text-xl font-bold p-4">Discussions</h2>
-        <ul>
-          {chatList.map((chat) => (
-            <li
-              key={chat.PatientId}
-              className="cursor-pointer mr-4 p-2 hover:bg-gray-200 rounded"
-              onClick={() => handleChatSelect(chat.PatientId)}
-            >
-              <User name={`${chat.FirstName} ${chat.LastName}`} />
-            </li>
-          ))}
-        </ul>
+        <PatientList patients={chatList} onPatientClick={handleChatSelect} />
       </div>
       <div className="w-3/4 flex flex-col">
         {selectedChatId ? (
@@ -137,12 +157,19 @@ const Inbox: React.FC = () => {
                   className={`p-2 my-2 ${msg.Sender === "Psychologist" ? "text-right" : "text-left"}`}
                 >
                   <div
-                    className={`inline-block p-2 rounded ${msg.Sender === "Psychologist" ? "bg-blue-200" : "bg-gray-200"}`}
+                    className={`inline-block p-2 rounded ${
+                      msg.Sender === "Psychologist"
+                        ? msg.Sending
+                          ? "bg-yellow-200"
+                          : "bg-blue-200"
+                        : "bg-gray-200"
+                    }`}
                   >
                     {msg.Message}
                   </div>
                 </div>
               ))}
+              <div ref={messagesEndRef} />
             </div>
             <div className="p-4 border-t flex">
               <Textarea
@@ -151,6 +178,8 @@ const Inbox: React.FC = () => {
                 value={newMessage}
                 variant="bordered"
                 onChange={(e) => setNewMessage(e.target.value)}
+                // @ts-ignore
+                onKeyPress={handleKeyPress}
               />
               <Button
                 className="ml-2"

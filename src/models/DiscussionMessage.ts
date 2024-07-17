@@ -6,4 +6,5 @@ export interface DiscussionMessage {
   Timestamp: string;
   Sender: string;
   Seen: boolean;
+  Sending: boolean;
 }
