@@ -20,6 +20,7 @@ export default function Home() {
 
     fetchUser();
 
+    // @ts-ignore
     const listener = async ({ payload }) => {
       switch (payload.event) {
         case "signInWithRedirect":
