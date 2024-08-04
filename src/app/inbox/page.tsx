@@ -122,7 +122,7 @@ const Inbox: React.FC = () => {
           ws.current.send(
             JSON.stringify({ action: "sendMessage", data: newMsg }),
           );
-        }, 0); // 2 seconds delay
+        }, 0);
       }
     }
   };

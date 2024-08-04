@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { ThemeProvider as NextThemesProvider } from "next-themes";
 import { ThemeProviderProps } from "next-themes/dist/types";
 import { Amplify } from "aws-amplify";
-import AWS_CONFIG from "../config/aws";  // Adjust the path if necessary
+import AWS_CONFIG from "../config/aws";
 
 Amplify.configure(AWS_CONFIG);
 
