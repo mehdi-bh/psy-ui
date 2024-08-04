@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { getPatients } from "@/src/services/patientService";
 import { Patient } from "@/src/models/Patient";
@@ -8,6 +9,7 @@ import PatientList from "../../components/PatientList";
 const Patients = () => {
   const [patientList, setPatientList] = useState<Patient[]>([]);
   const userId = "456";
+  const router = useRouter();
 
   const fetchPatients = useCallback(async () => {
     try {
@@ -23,8 +25,7 @@ const Patients = () => {
   }, [fetchPatients]);
 
   const handlePatientClick = (patientId: string) => {
-    // Logic to navigate to patient details page
-    console.log("Navigating to patient details for:", patientId);
+    router.push(`/patients/${patientId}`);
   };
 
   return <PatientList patients={patientList} onPatientClick={handlePatientClick} />;

@@ -1,10 +1,14 @@
 "use client";
 
-import * as React from "react";
+import React from "react";
 import { NextUIProvider } from "@nextui-org/system";
 import { useRouter } from "next/navigation";
 import { ThemeProvider as NextThemesProvider } from "next-themes";
 import { ThemeProviderProps } from "next-themes/dist/types";
+import { Amplify } from "aws-amplify";
+import AWS_CONFIG from "../config/aws";  // Adjust the path if necessary
+
+Amplify.configure(AWS_CONFIG);
 
 export interface ProvidersProps {
   children: React.ReactNode;
