@@ -5,8 +5,8 @@ const AWS_CONFIG: ResourcesConfig = {
     Cognito: {
       loginWith: {
         oauth: {
-          redirectSignIn: ["http://localhost:3005"],
-          redirectSignOut: ["http://localhost:3005"],
+          redirectSignIn: ["https://psy-ui.vercel.app"],
+          redirectSignOut: ["https://psy-ui.vercel.app"],
           domain: "psy-platform.auth.eu-west-3.amazoncognito.com",
           providers: ["Google"],
           scopes: ["email", "openid", "aws.cognito.signin.user.admin"],
